@@ -1,0 +1,22 @@
+# .NET / IDE
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+TestResults/
+
+# Credenciais e configuracoes locais (NUNCA versionar)
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
+.env
+.env.*
+!.env.example
+*.pfx
+*.key
+*.pem
+
+# logs
+*.log

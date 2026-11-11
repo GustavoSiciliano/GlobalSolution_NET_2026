@@ -1,0 +1,63 @@
+@url = http://localhost:5086
+
+### Consultar pontos
+GET {{url}}/api/pontos-coleta
+
+### Criar ponto
+POST {{url}}/api/pontos-coleta
+Content-Type: application/json
+
+{
+  "nome": "Lixeira Biblioteca",
+  "descricaoLocalizacao": "FIAP, corredor biblioteca",
+  "capacidadeLitros": 60,
+  "ativo": true
+}
+
+### GET inexistente deve retornar 404
+GET {{url}}/api/pontos-coleta/999999
+
+### Dados invalidos devem retornar 400
+POST {{url}}/api/pontos-coleta
+Content-Type: application/json
+
+{
+  "nome": "",
+  "descricaoLocalizacao": "",
+  "capacidadeLitros": -10
+}
+
+### Criar usuario (usar senha ficticia)
+POST {{url}}/api/usuarios
+Content-Type: application/json
+
+{
+  "nome": "Cidadão Teste",
+  "email": "cidadado.teste@binova.invalid",
+  "senha": "SenhaDeTeste123!",
+  "papel": "CIDADAO"
+}
+
+### Criar ocorrência após possuir um ponto e usuário
+POST {{url}}/api/ocorrencias
+Content-Type: application/json
+
+{
+  "pontoColetaId": 1,
+  "usuarioId": 1,
+  "tipo": "LIXEIRA_CHEIA",
+  "descricao": "Lixeira próxima do limite"
+}
+
+### Registrar leitura após possuir ponto
+POST {{url}}/api/leituras-sensor
+Content-Type: application/json
+
+{
+  "pontoColetaId": 1,
+  "distanciaCm": 12.5,
+  "nivelPercentual": 85
+}
+
+### Situação do ponto
+GET {{url}}/api/pontos-coleta/1/situacao
