@@ -1,27 +1,42 @@
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
 
 namespace Binova.Api.Dados;
 
 public class BinovaDbContextFactory : IDesignTimeDbContextFactory<BinovaDbContext>
 {
+    // Configura o acesso ao Oracle para os comandos do Entity Framework Core
     public BinovaDbContext CreateDbContext(string[] args)
     {
-        var ambiente = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
-        var config = new ConfigurationBuilder()
+        string ambiente =
+            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+            ?? "Development";
+
+        var configuracao = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile($"appsettings.{ambiente}.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
-        var conexao = config.GetConnectionString("Oracle");
-        if (string.IsNullOrWhiteSpace(conexao))
-            throw new InvalidOperationException("Configure a conexao Oracle local antes da Migration.");
+        string? conexao = configuracao.GetConnectionString("Oracle");
 
-        var options = new DbContextOptionsBuilder<BinovaDbContext>()
-            .UseOracle(conexao, oracle => oracle.MigrationsHistoryTable("BINOVA_EF_MIGRATIONS"))
+        if (string.IsNullOrWhiteSpace(conexao))
+        {
+            throw new InvalidOperationException(
+                "A conexão com o Oracle não foi configurada. " +
+                "Verifique o arquivo local de configuração ou a variável de ambiente."
+            );
+        }
+
+        var opcoes = new DbContextOptionsBuilder<BinovaDbContext>()
+            .UseOracle(conexao, oracle =>
+                oracle.MigrationsHistoryTable("BINOVA_EF_MIGRATIONS"))
             .Options;
-        return new BinovaDbContext(options);
+
+        return new BinovaDbContext(opcoes);
     }
 }
