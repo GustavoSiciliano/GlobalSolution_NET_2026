@@ -1,6 +1,6 @@
-# Binova — API .NET ♻️
+# Binova - API .NET ♻️
 
-**FIAP | Global Solution 2026/2 — CitizenTech**  
+**FIAP | Global Solution 2026/2 - CitizenTech**  
 **Disciplina:** Advanced Business Development with .NET  
 **Repositório:** https://github.com/GustavoSiciliano/GlobalSolution_NET_2026
 
@@ -26,7 +26,7 @@ O projeto integra a proposta da Global Solution 2026/2, cujo tema é **CitizenTe
 
 **Instituição:** FIAP  
 **Curso:** Análise e Desenvolvimento de Sistemas  
-**Turma:** a preencher conforme o cadastro oficial da equipe.
+**Turma:** 2TDSPS
 
 ## 3. Tecnologias utilizadas
 
@@ -50,8 +50,6 @@ O desenvolvimento utiliza as seguintes tecnologias:
 | Banco | Oracle da FIAP |
 
 A conexão deve utilizar o mesmo usuário Oracle em que os scripts de Banco de Dados do Binova foram executados.
-
-Por segurança, a senha não é armazenada no repositório.
 
 ## 4. Modelo de dados
 
@@ -124,7 +122,7 @@ erDiagram
 
 Os campos de data utilizam `TIMESTAMP WITH TIME ZONE`, conforme o modelo Oracle do projeto.
 
-## 5. Integração com o banco existente
+## 5. Integração com o banco
 
 A API .NET foi preparada para utilizar as mesmas tabelas criadas na disciplina de Banco de Dados.
 
@@ -138,8 +136,6 @@ As tabelas utilizadas são:
 - `OCORRENCIA`
 
 A estrutura do projeto prevê a preservação das tabelas e de seus registros. A criação de novos identificadores é feita por meio de sequências Oracle, planejadas para iniciar após os maiores IDs existentes.
-
-**Importante:** a conexão com o banco e o comportamento das Migrations ainda precisam ser validados no ambiente Oracle da equipe. Antes de aplicar alterações, é necessário conferir a estrutura atual para evitar modificações indevidas.
 
 ## 6. Migrations
 
@@ -373,8 +369,6 @@ O projeto disponibiliza um roteiro de testes em PowerShell:
 
 O script foi preparado para executar operações de cadastro, consulta, atualização e exclusão, além de verificar os principais códigos HTTP.
 
-**Atenção:** esses testes podem modificar registros reais no schema compartilhado. Recomenda-se executá-los somente no ambiente acadêmico e conferir antecipadamente os registros envolvidos.
-
 A exclusão de pontos de coleta utiliza desativação lógica para preservar o histórico associado.
 
 ### 10.3 Testar erros de validação
@@ -418,44 +412,3 @@ A implementação foi organizada considerando os critérios definidos para Advan
 | Tratamento de erros 400 e 404 | 10 | `Contratos/` e `Controllers/` |
 | Documentação do projeto | 5 | `README.md` |
 | **Total** | **100** | |
-
-A presença desses recursos no código não substitui a validação prática. O funcionamento deverá ser demonstrado durante os testes e na apresentação da disciplina.
-
-## 13. Entrega da disciplina
-
-A entrega de .NET deverá conter:
-
-1. **Repositório público no GitHub:** projeto na raiz, código-fonte, `.gitignore` e Migrations versionadas.
-2. **README.md:** apresentação do projeto, integrantes, diagrama das entidades, instruções de execução e testes.
-3. **Vídeo demonstrativo de até cinco minutos:** execução do CRUD e apresentação dos dados armazenados no Oracle.
-4. **Arquivo `.txt` no Portal FIAP:** nome, RM e turma dos integrantes, link do GitHub e link do vídeo.
-
-Os diretórios `bin/` e `obj/` não devem ser enviados ao repositório.
-
-## 14. Situação do desenvolvimento
-
-O código-fonte e a estrutura inicial da API .NET estão preparados para a etapa de validação.
-
-Ainda precisam ser confirmados no computador da equipe:
-
-- Compilação do projeto com .NET 8.
-- Conexão com o banco Oracle da FIAP.
-- Aplicação segura das Migrations.
-- Consulta dos registros existentes.
-- Funcionamento completo do CRUD.
-- Respostas de validação e tratamento de erros.
-- Gravação do vídeo demonstrativo.
-
-Essas verificações serão realizadas antes da entrega definitiva.
-
-## 15. Considerações finais
-
-A API .NET representa a camada de acesso aos dados do Binova, permitindo organizar informações sobre os pontos de coleta, as leituras dos sensores e as ocorrências registradas.
-
-A utilização do ASP.NET Core, Entity Framework Core e Oracle atende à proposta técnica da disciplina e permite trabalhar com entidades relacionadas, persistência de dados e operações REST.
-
-Além de demonstrar os conceitos abordados durante as aulas, o projeto contribui para a proposta geral do Binova: utilizar a tecnologia para apoiar uma gestão mais organizada dos resíduos e melhorar o acompanhamento das condições dos pontos de coleta.
-
----
-
-**Observação de segurança:** a API não implementa autenticação nesta versão, pois esse recurso não é obrigatório para a entrega de .NET. Seu uso deve permanecer restrito ao ambiente acadêmico de desenvolvimento e testes. Credenciais, arquivos locais de configuração e demais informações sensíveis não devem ser publicados no GitHub.
