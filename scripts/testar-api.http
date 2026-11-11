@@ -1,23 +1,13 @@
+
 @url = http://localhost:5086
 
-### Consultar pontos
+### 1. Listar os pontos de coleta
 GET {{url}}/api/pontos-coleta
 
-### Criar ponto
-POST {{url}}/api/pontos-coleta
-Content-Type: application/json
-
-{
-  "nome": "Lixeira Biblioteca",
-  "descricaoLocalizacao": "FIAP, corredor biblioteca",
-  "capacidadeLitros": 60,
-  "ativo": true
-}
-
-### GET inexistente deve retornar 404
+### 2. Consultar um ponto inexistente - HTTP 404
 GET {{url}}/api/pontos-coleta/999999
 
-### Dados invalidos devem retornar 400
+### 3. Validar dados incorretos - HTTP 400
 POST {{url}}/api/pontos-coleta
 Content-Type: application/json
 
@@ -27,37 +17,132 @@ Content-Type: application/json
   "capacidadeLitros": -10
 }
 
-### Criar usuario (usar senha ficticia)
+### 4. Cadastrar um ponto de coleta - HTTP 201
+# @name criarPonto
+POST {{url}}/api/pontos-coleta
+Content-Type: application/json
+
+{
+  "nome": "Lixeira Biblioteca",
+  "descricaoLocalizacao": "FIAP, corredor da biblioteca",
+  "capacidadeLitros": 60,
+  "ativo": true
+}
+
+### 5. Consultar o ponto cadastrado - HTTP 200
+GET {{url}}/api/pontos-coleta/{{criarPonto.response.body.$.id}}
+
+### 6. Atualizar o ponto de coleta - HTTP 204
+PUT {{url}}/api/pontos-coleta/{{criarPonto.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nome": "Lixeira Biblioteca Atualizada",
+  "descricaoLocalizacao": "FIAP, entrada da biblioteca",
+  "capacidadeLitros": 80,
+  "ativo": true
+}
+
+### 7. Listar os usuários
+GET {{url}}/api/usuarios
+
+### 8. Cadastrar um usuário de teste - HTTP 201
+# @name criarUsuario
 POST {{url}}/api/usuarios
 Content-Type: application/json
 
 {
   "nome": "Cidadão Teste",
-  "email": "cidadado.teste@binova.invalid",
+  "email": "cidadao.teste@binova.invalid",
   "senha": "SenhaDeTeste123!",
   "papel": "CIDADAO"
 }
 
-### Criar ocorrência após possuir um ponto e usuário
+### 9. Consultar o usuário cadastrado - HTTP 200
+GET {{url}}/api/usuarios/{{criarUsuario.response.body.$.id}}
+
+### 10. Atualizar o usuário - HTTP 204
+PUT {{url}}/api/usuarios/{{criarUsuario.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "nome": "Cidadão Teste Atualizado",
+  "email": "cidadao.teste@binova.invalid",
+  "papel": "CIDADAO"
+}
+
+### 11. Listar as ocorrências
+GET {{url}}/api/ocorrencias
+
+### 12. Cadastrar uma ocorrência - HTTP 201
+# @name criarOcorrencia
 POST {{url}}/api/ocorrencias
 Content-Type: application/json
 
 {
-  "pontoColetaId": 1,
-  "usuarioId": 1,
+  "pontoColetaId": {{criarPonto.response.body.$.id}},
+  "usuarioId": {{criarUsuario.response.body.$.id}},
   "tipo": "LIXEIRA_CHEIA",
-  "descricao": "Lixeira próxima do limite"
+  "descricao": "Lixeira próxima do limite de capacidade."
 }
 
-### Registrar leitura após possuir ponto
+### 13. Consultar a ocorrência - HTTP 200
+GET {{url}}/api/ocorrencias/{{criarOcorrencia.response.body.$.id}}
+
+### 14. Atualizar a ocorrência - HTTP 204
+PUT {{url}}/api/ocorrencias/{{criarOcorrencia.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "tipo": "LIXEIRA_CHEIA",
+  "descricao": "Ocorrência recebida pela equipe responsável.",
+  "status": "EM_ATENDIMENTO"
+}
+
+### 15. Filtrar ocorrências pelo status
+GET {{url}}/api/ocorrencias?status=EM_ATENDIMENTO
+
+### 16. Listar as leituras dos sensores
+GET {{url}}/api/leituras-sensor
+
+### 17. Registrar uma leitura - HTTP 201
+# @name criarLeitura
 POST {{url}}/api/leituras-sensor
 Content-Type: application/json
 
 {
-  "pontoColetaId": 1,
+  "pontoColetaId": {{criarPonto.response.body.$.id}},
   "distanciaCm": 12.5,
   "nivelPercentual": 85
 }
 
-### Situação do ponto
-GET {{url}}/api/pontos-coleta/1/situacao
+### 18. Consultar a leitura - HTTP 200
+GET {{url}}/api/leituras-sensor/{{criarLeitura.response.body.$.id}}
+
+### 19. Consultar a situação do ponto - HTTP 200
+GET {{url}}/api/pontos-coleta/{{criarPonto.response.body.$.id}}/situacao
+
+### 20. Atualizar uma leitura - HTTP 204
+PUT {{url}}/api/leituras-sensor/{{criarLeitura.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "pontoColetaId": {{criarPonto.response.body.$.id}},
+  "distanciaCm": 25,
+  "nivelPercentual": 45
+}
+
+### 21. Excluir a leitura de teste - HTTP 204
+DELETE {{url}}/api/leituras-sensor/{{criarLeitura.response.body.$.id}}
+
+### 22. Excluir a ocorrência de teste - HTTP 204
+DELETE {{url}}/api/ocorrencias/{{criarOcorrencia.response.body.$.id}}
+
+### 23. Excluir o usuário de teste - HTTP 204
+DELETE {{url}}/api/usuarios/{{criarUsuario.response.body.$.id}}
+
+### 24. Desativar o ponto de coleta - HTTP 204
+DELETE {{url}}/api/pontos-coleta/{{criarPonto.response.body.$.id}}
+
+### 25. Confirmar a desativação
+GET {{url}}/api/pontos-coleta?incluirInativos=true

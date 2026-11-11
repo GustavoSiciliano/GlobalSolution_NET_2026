@@ -1,22 +1,33 @@
-# .NET / IDE
+
+# Arquivos gerados pelo .NET
 bin/
 obj/
 .vs/
 .vscode/
 *.user
 *.suo
-TestResults/
 
-# Credenciais e configuracoes locais (NUNCA versionar)
+# Testes e resultados
+TestResults/
+coverage/
+*.trx
+
+# Configurações locais e credenciais
 appsettings.Development.json
 appsettings.Production.json
 appsettings.Local.json
 .env
 .env.*
 !.env.example
+
+# Certificados e chaves privadas
 *.pfx
 *.key
 *.pem
 
-# logs
+# Arquivos de log
 *.log
+
+# Arquivos temporários do sistema
+.DS_Store
+Thumbs.db
