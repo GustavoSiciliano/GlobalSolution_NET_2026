@@ -2,7 +2,8 @@
 
 **FIAP | Global Solution 2026/2 - CitizenTech**  
 **Disciplina:** Advanced Business Development with .NET  
-**Repositório:** https://github.com/GustavoSiciliano/GlobalSolution_NET_2026
+**Repositório:** https://github.com/GustavoSiciliano/GlobalSolution_NET_2026  
+**Vídeo:** https://youtu.be/4oG6erDvQaQ
 
 
 > **Para o professor - roteiro de avaliação manual:** siga a [configuração e execução](#8-configuração-do-ambiente) e, com a API aberta, use o [roteiro completo de testes](#10-roteiro-de-avaliação-manual). Os exemplos criam seus próprios dados; não dependem dos IDs existentes no banco.
@@ -10,14 +11,18 @@
 **Resumo da execução (PowerShell, na raiz do repositório):**
 
 ```powershell
+$env:DOTNET_ENVIRONMENT = "Development"
+$env:ASPNETCORE_ENVIRONMENT = "Development"
 dotnet tool restore
 dotnet restore .\Binova.Api.csproj
 dotnet build .\Binova.Api.csproj
-dotnet ef database update --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj
+dotnet ef migrations list --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj
 dotnet run --project .\Binova.Api.csproj
 ```
 
-Antes dos comandos, configure o Oracle em `appsettings.Development.json` e certifique-se de usar uma conta de teste autorizada. O último comando mantém a API ligada em `http://localhost:5086`; abra outro terminal para chamar os endpoints. **Não é preciso instalar Swagger ou executar scripts de testes automatizados.**
+**Apenas em um schema de avaliação onde a Migration ainda não foi aplicada e com a conexão funcionando**, execute `dotnet ef database update --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj`, conforme a seção 8.5. Não execute essa atualização indiscriminadamente em uma conta compartilhada.
+
+Antes dos comandos, configure o Oracle em `appsettings.Development.json` e certifique-se de usar uma conta de teste autorizada. O último comando mantém a API ligada em `http://localhost:5086`; abra outro terminal para chamar os endpoints.
 
 ## 1. Apresentação do projeto
 
@@ -64,7 +69,7 @@ O desenvolvimento utiliza as seguintes tecnologias:
 | Serviço | `orcl` |
 | Banco | Oracle da FIAP |
 
-A API deve acessar um schema Oracle com as quatro tabelas do Binova. Pode ser o schema dos scripts da disciplina de Banco de Dados ou um schema de teste separado, preparado pela Migration do .NET.
+A API deve acessar um schema Oracle com as quatro tabelas do Binova.
 
 ## 4. Modelo de dados
 
@@ -175,8 +180,6 @@ A Migration não possui uma reversão destrutiva, pois o banco também é utiliz
 
 **Não execute comandos `DROP TABLE` para instalar ou testar a API.**
 
-Antes de aplicar a Migration, recomenda-se verificar seu código, conferir as tabelas existentes e validar a operação em um ambiente de testes.
-
 ## 7. Estrutura do projeto
 
 O repositório está organizado para separar a configuração da aplicação, o acesso aos dados, as entidades e os endpoints.
@@ -266,11 +269,15 @@ Se utilizou **Download ZIP**, apenas abra o terminal na pasta extraída que cont
 
 ### 8.3 Configurar o acesso ao Oracle
 
-Crie o arquivo local de desenvolvimento a partir do exemplo:
+Crie o arquivo local de desenvolvimento a partir do exemplo **somente se ainda não existir**:
 
 ```powershell
-Copy-Item .\appsettings.Development.example.json .\appsettings.Development.json
+if (-not (Test-Path .\appsettings.Development.json)) {
+    Copy-Item .\appsettings.Development.example.json .\appsettings.Development.json
+}
 ```
+
+Para editar as credenciais pelo terminal, utilize `notepad .\appsettings.Development.json`. Nunca copie o arquivo de exemplo por cima de uma configuração válida sem conferir seu conteúdo.
 
 Abra `appsettings.Development.json` e configure **seu próprio usuário e senha**:
 
@@ -289,7 +296,7 @@ Abra `appsettings.Development.json` e configure **seu próprio usuário e senha*
 }
 ```
 
-Use o usuário exato fornecido pela FIAP (inclusive o prefixo `RM`, **se fizer parte do login**). O arquivo é **local, não deve ser publicado** e deve continuar no `.gitignore`. Nunca coloque credenciais reais no README, nos commits ou no vídeo.
+Use o usuário exato fornecido pela FIAP (inclusive o prefixo `RM`, **se fizer parte do login**). 
 
 No PowerShell do projeto, configure o ambiente antes de aplicar a Migration:
 
@@ -307,11 +314,11 @@ dotnet restore .\Binova.Api.csproj
 dotnet build .\Binova.Api.csproj
 ```
 
-O esperado é **`Build succeeded` / `Construir êxito`**, sem erros. O projeto usa `dotnet-ef` 8 na configuração local; **não é necessário atualizar para uma versão de EF diferente da utilizada pela aplicação**.
+O esperado é **`Build succeeded` / `Construir êxito`**, sem erros. O projeto usa `dotnet-ef` 8 na configuração local.
 
 ### 8.5 Aplicar a Migration no Oracle
 
-**Antes de executar**, confirme que a connection string aponta para a conta Oracle escolhida para o teste. Preferencialmente use um **schema de avaliação sem dados importantes**. A Migration da entrega utiliza os nomes originais `USUARIO`, `PONTO_COLETA`, `LEITURA_SENSOR` e `OCORRENCIA`, **não** os nomes temporários `_TESTE` utilizados durante o desenvolvimento.
+**Antes de executar**, confirme que a connection string aponta para a conta Oracle escolhida para o teste. A Migration da entrega utiliza os nomes originais `USUARIO`, `PONTO_COLETA`, `LEITURA_SENSOR` e `OCORRENCIA`.
 
 Confira as Migrations disponíveis:
 
@@ -319,11 +326,13 @@ Confira as Migrations disponíveis:
 dotnet ef migrations list --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj
 ```
 
-Aplique:
+**Se a conexão estiver correta e a Migration realmente estiver pendente no schema de testes**, aplique:
 
 ```powershell
 dotnet ef database update --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj
 ```
+
+Se `migrations list` retornar `ORA-01017` ou outra falha de conexão, **interrompa aqui**. A indicação `(Pending)` após falha de autenticação não é uma confirmação confiável de que falta aplicar a Migration.
 
 Na primeira aplicação da Migration, o terminal poderá mostrar:
 
@@ -559,6 +568,14 @@ Invoke-RestMethod "$baseUrl/pontos-coleta/$($pontoCriado.id)/situacao"
 
 Execute na ordem desejada. Cada `PUT` deve retornar **`204 No Content`**. Em PowerShell, esse status normalmente não exibe corpo de resposta; o comando só apresenta saída em caso de erro ou se for feita outra consulta.
 
+**Antes de atualizar, confira os IDs:**
+
+```powershell
+if (-not ($usuarioCriado.id -and $pontoCriado.id -and $leituraCriada.id -and $ocorrenciaCriada.id)) {
+    throw "IDs ausentes. Execute os quatro POSTs no mesmo terminal antes dos PUTs."
+}
+```
+
 **PUT 1 - Usuário** (`PUT /api/usuarios/{id}`), sem enviar senha:
 
 ```json
@@ -572,7 +589,7 @@ Execute na ordem desejada. Cada `PUT` deve retornar **`204 No Content`**. Em Pow
 ```powershell
 $usuarioAtualizacao = @{
     nome = "Usuario Avaliacao Atualizado"
-    email = $usuarioCriado.email
+    email = $emailTeste
     papel = "CIDADAO"
 } | ConvertTo-Json
 
@@ -666,7 +683,15 @@ Invoke-RestMethod "$baseUrl/ocorrencias/$($ocorrenciaCriada.id)"
 
 A ordem evita violar relacionamentos: **ocorrência → leitura → usuário → ponto de coleta**. A exclusão do ponto de coleta é **lógica**: ele permanece na tabela Oracle, com `ATIVO = 0`.
 
+**Confirme os IDs antes de executar:** se eles estiverem vazios, a URL do DELETE pode ficar sem `/{id}` e retornar **HTTP 405**, como em uma rota que aceita GET/POST mas não DELETE sem identificador.
+
 ```powershell
+if (-not ($usuarioCriado.id -and $pontoCriado.id -and $leituraCriada.id -and $ocorrenciaCriada.id)) {
+    throw "IDs ausentes. Execute os quatro POSTs no mesmo terminal antes dos DELETEs."
+}
+
+"Usuario=$($usuarioCriado.id); Ponto=$($pontoCriado.id); Leitura=$($leituraCriada.id); Ocorrencia=$($ocorrenciaCriada.id)"
+
 Invoke-RestMethod -Uri "$baseUrl/ocorrencias/$($ocorrenciaCriada.id)" -Method Delete
 "DELETE ocorrencia concluido"
 
@@ -737,3 +762,157 @@ SELECT COUNT(*) AS TOTAL_OCORRENCIAS FROM OCORRENCIA;
 ```
 
 Depois dos POSTs, as contagens aumentam. Depois dos DELETEs, os registros de usuário, leitura e ocorrência utilizados no teste são removidos; o ponto permanece com `ATIVO = 0`. A leitura anterior já pode constar de outras medições e o sistema pode conter dados adicionais - não espere quantidades fixas em schemas compartilhados.
+
+## 11. Demonstração rápida — CRUD de USUARIO (caminho utilizado no vídeo)
+
+Para uma demonstração curta, o recurso `USUARIO` pode ser utilizado isoladamente: ele não depende de cadastrar um ponto, uma leitura ou uma ocorrência. **Use um segundo PowerShell com a API já iniciada e mantenha a mesma janela nos quatro comandos.** Não é necessário criar arquivos `.ps1` nem definir a função `Testar-Api`.
+
+**11.1 POST — criar o usuário (HTTP 201)**
+
+```powershell
+$emailDemo = "binova.$([guid]::NewGuid().ToString('N').Substring(0,8))@example.com"
+$r = Invoke-WebRequest -Uri "http://localhost:5086/api/usuarios" `
+    -Method Post -UseBasicParsing -ContentType "application/json" `
+    -Body (@{nome="Usuario FIAP";email=$emailDemo;senha="Teste123456!";papel="CIDADAO"} | ConvertTo-Json)
+$idDemo = ($r.Content | ConvertFrom-Json).id
+if (-not $idDemo) { throw "POST sem ID. Verifique o retorno antes de continuar." }
+Write-Host "POST HTTP $($r.StatusCode) - ID: $idDemo"
+```
+
+**11.2 GET — consultar o usuário (HTTP 200)**
+
+```powershell
+if (-not $idDemo) { throw "Execute primeiro o POST." }
+$r = Invoke-WebRequest -Uri "http://localhost:5086/api/usuarios/$idDemo" -UseBasicParsing
+Write-Host "GET HTTP $($r.StatusCode)"
+$r.Content | ConvertFrom-Json | Format-List
+```
+
+**11.3 PUT — atualizar o usuário (HTTP 204)**
+
+```powershell
+if (-not $idDemo) { throw "Execute primeiro o POST." }
+$r = Invoke-WebRequest -Uri "http://localhost:5086/api/usuarios/$idDemo" `
+    -Method Put -UseBasicParsing -ContentType "application/json" `
+    -Body (@{nome="Usuario FIAP Atualizado";email=$emailDemo;papel="CIDADAO"} | ConvertTo-Json)
+Write-Host "PUT HTTP $($r.StatusCode)"
+```
+
+**11.4 DELETE — excluir o usuário (HTTP 204)**
+
+```powershell
+if (-not $idDemo) { throw "Execute primeiro o POST." }
+$r = Invoke-WebRequest -Uri "http://localhost:5086/api/usuarios/$idDemo" `
+    -Method Delete -UseBasicParsing
+Write-Host "DELETE HTTP $($r.StatusCode)"
+```
+
+Esse DELETE é apropriado somente para o usuário recém-criado sem ocorrências vinculadas. Para demonstrar `400` e `404`, utilize os dois comandos da seção **10.7**.
+
+## 12. Solução de problemas pelo terminal (PowerShell)
+
+Estas instruções cobrem os problemas encontrados durante a preparação da entrega. São verificações de ambiente e execução; **não exigem modificar os controllers ou as Migrations**.
+
+### 12.1 `URI inválido` ou nome do host não pôde ser analisado
+
+A variável `$baseUrl` não foi criada na janela atual do PowerShell. Execute:
+
+```powershell
+$baseUrl = "http://localhost:5086/api"
+Invoke-RestMethod "$baseUrl/usuarios"
+```
+
+Variáveis do PowerShell **não são compartilhadas automaticamente entre janelas**.
+
+### 12.2 `Testar-Api` não é reconhecido
+
+`Testar-Api` é uma função auxiliar utilizada apenas em alguns testes de desenvolvimento e **não faz parte da API**. Utilize os comandos `Invoke-RestMethod` da seção 10 ou os `Invoke-WebRequest` da seção 11, que não precisam dessa função.
+
+### 12.3 `405 Method Not Allowed` ao tentar DELETE
+
+Confira se a URL contém o **ID numérico** do recurso. Uma URL como `/api/ocorrencias/` (sem ID) não corresponde ao endpoint `DELETE /api/ocorrencias/{id}`.
+
+```powershell
+"ID da ocorrencia: $($ocorrenciaCriada.id)"
+if (-not $ocorrenciaCriada.id) { throw "ID ausente. Execute o POST antes do DELETE." }
+```
+
+Execute os POSTs e DELETEs na **mesma janela do segundo PowerShell**. Não escolha IDs de outros registros para contornar o erro.
+
+### 12.4 `ORA-01017`: Oracle recusou usuário ou senha
+
+Confira se as credenciais do arquivo local correspondem à conta Oracle utilizada para os testes. Execute:
+
+```powershell
+$env:DOTNET_ENVIRONMENT = "Development"
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+notepad .\appsettings.Development.json
+```
+
+Se houver uma variável de ambiente antiga sobrescrevendo a conexão e **ela não for intencional**, remova-a apenas desta sessão:
+
+```powershell
+Remove-Item Env:ConnectionStrings__Oracle -ErrorAction SilentlyContinue
+dotnet ef migrations list --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj
+```
+
+Se o erro persistir, valide a mesma conta no Oracle SQL Developer. **Não compartilhe a senha nem execute `database update` enquanto houver erro de autenticação.**
+
+### 12.5 `ORA-02396`: sessão Oracle encerrada por inatividade
+
+O Oracle encerrou a sessão depois de exceder seu tempo permitido de inatividade. Pare a API usando `Ctrl + C` no terminal da aplicação e inicie novamente:
+
+```powershell
+dotnet run --project .\Binova.Api.csproj
+```
+
+Em outro terminal, confirme se a conexão voltou:
+
+```powershell
+Invoke-RestMethod "http://localhost:5086/api/usuarios"
+```
+
+Se o erro persistir, é necessário conferir as políticas de sessão do Oracle utilizado; reiniciar não altera o limite configurado pelo banco.
+
+### 12.6 A API não responde ou a porta `5086` está ocupada
+
+Se não houver processo executando, inicie a API:
+
+```powershell
+dotnet run --project .\Binova.Api.csproj
+```
+
+Se houver uma instância antiga do **próprio Binova** ocupando a porta, encerre-a pelo terminal em que foi iniciada (`Ctrl + C`) ou, se não tiver acesso a essa janela:
+
+```powershell
+Get-Process -Name "Binova.Api" -ErrorAction SilentlyContinue | Stop-Process -Force
+dotnet run --project .\Binova.Api.csproj
+```
+
+Não encerre processos desconhecidos que possam estar utilizando a mesma porta.
+
+### 12.7 Erro de compilação por arquivo `.dll` ou `.exe` em uso
+
+Pare a API, compile e reinicie:
+
+```powershell
+Get-Process -Name "Binova.Api" -ErrorAction SilentlyContinue | Stop-Process -Force
+dotnet build .\Binova.Api.csproj
+dotnet run --project .\Binova.Api.csproj
+```
+
+### 12.8 `dotnet-ef` ausente, `MSB1011` ou projeto não encontrado
+
+Abra o terminal na pasta que contém `Binova.Api.csproj` e execute:
+
+```powershell
+dotnet tool restore
+dotnet restore .\Binova.Api.csproj
+dotnet build .\Binova.Api.csproj
+```
+
+O manifesto `.config/dotnet-tools.json` precisa estar no clone. Se o build foi concluído com sucesso, mas `migrations list` retornar `Pending` junto de erro Oracle, **corrija primeiro a conexão**; esse resultado não prova que falta criar tabelas.
+
+---
+
+**Evidência da apresentação:** [Vídeo Binova — API .NET (4min58s)](https://youtu.be/4oG6erDvQaQ). **Código-fonte:** [GitHub GlobalSolution_NET_2026](https://github.com/GustavoSiciliano/GlobalSolution_NET_2026).
