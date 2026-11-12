@@ -2,6 +2,7 @@
 using Binova.Api.Dados;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Oracle.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,11 @@ builder.Services.AddDbContext<BinovaDbContext>(opcoes =>
     opcoes.UseOracle(conexao, oracle =>
     {
         oracle.MigrationsHistoryTable("BINOVA_EF_MIGRATIONS");
+
+        // Mantém a compatibilidade com o Oracle da FIAP
+        oracle.UseOracleSQLCompatibility(
+            OracleSQLCompatibility.DatabaseVersion19
+        );
     });
 });
 

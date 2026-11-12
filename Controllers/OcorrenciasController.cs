@@ -116,9 +116,9 @@ public class OcorrenciasController(BinovaDbContext banco) : ControllerBase
             });
         }
 
-        bool pontoValido = await banco.PontosColeta
-            .AnyAsync(ponto =>
-                ponto.Id == entrada.PontoColetaId && ponto.Ativo);
+        bool pontoValido = (await banco.PontosColeta
+            .CountAsync(ponto =>
+                ponto.Id == entrada.PontoColetaId && ponto.Ativo)) > 0;
 
         if (!pontoValido)
         {
@@ -128,8 +128,8 @@ public class OcorrenciasController(BinovaDbContext banco) : ControllerBase
             });
         }
 
-        bool usuarioExiste = await banco.Usuarios
-            .AnyAsync(usuario => usuario.Id == entrada.UsuarioId);
+        bool usuarioExiste = (await banco.Usuarios
+            .CountAsync(usuario => usuario.Id == entrada.UsuarioId)) > 0;
 
         if (!usuarioExiste)
         {

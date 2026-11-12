@@ -12,7 +12,7 @@ namespace Binova.Api.Controllers;
 [Route("api/usuarios")]
 public class UsuariosController(BinovaDbContext banco) : ControllerBase
 {
-    // Monta a resposta do usuário sem expor a senha
+    // Monta a resposta do usuÃ¡rio sem expor a senha
     private static object MontarResposta(Usuario usuario)
     {
         return new
@@ -25,13 +25,13 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
         };
     }
 
-    // Verifica os papéis permitidos pelo banco de dados
+    // Verifica os papÃ©is permitidos pelo banco de dados
     private static bool PapelValido(string papel)
     {
         return papel is "CIDADAO" or "ADMIN";
     }
 
-    // Lista todos os usuários cadastrados
+    // Lista todos os usuÃ¡rios cadastrados
     [HttpGet]
     public async Task<IActionResult> Listar()
     {
@@ -43,7 +43,7 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
         return Ok(usuarios.Select(MontarResposta));
     }
 
-    // Consulta um usuário pelo identificador.
+    // Consulta um usuÃ¡rio pelo identificador.
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Buscar(int id)
     {
@@ -52,13 +52,13 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
 
         if (usuario is null)
         {
-            return NotFound(new { erro = "Usuário não encontrado." });
+            return NotFound(new { erro = "UsuÃ¡rio nÃ£o encontrado." });
         }
 
         return Ok(MontarResposta(usuario));
     }
 
-    // Cadastra um usuário com senha protegida por hash
+    // Cadastra um usuÃ¡rio com senha protegida por hash
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] UsuarioEntrada entrada)
     {
@@ -68,15 +68,15 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
 
         if (string.IsNullOrWhiteSpace(nome) || !PapelValido(papel))
         {
-            return BadRequest(new { erro = "Nome ou papel inválido." });
+            return BadRequest(new { erro = "Nome ou papel invÃ¡lido." });
         }
 
-        bool emailCadastrado = await banco.Usuarios
-            .AnyAsync(usuario => usuario.Email == email);
+        int quantidadeEmails = await banco.Usuarios
+            .CountAsync(usuario => usuario.Email == email);
 
-        if (emailCadastrado)
+        if (quantidadeEmails > 0)
         {
-            return BadRequest(new { erro = "E-mail já cadastrado." });
+            return BadRequest(new { erro = "E-mail jÃ¡ cadastrado." });
         }
 
         var usuario = new Usuario
@@ -98,7 +98,7 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
         );
     }
 
-    // Atualiza os dados de um usuário existente
+    // Atualiza os dados de um usuÃ¡rio existente
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Atualizar(
         int id,
@@ -108,7 +108,7 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
 
         if (usuario is null)
         {
-            return NotFound(new { erro = "Usuário não encontrado." });
+            return NotFound(new { erro = "UsuÃ¡rio nÃ£o encontrado." });
         }
 
         string nome = entrada.Nome.Trim();
@@ -117,15 +117,15 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
 
         if (string.IsNullOrWhiteSpace(nome) || !PapelValido(papel))
         {
-            return BadRequest(new { erro = "Nome ou papel inválido." });
+            return BadRequest(new { erro = "Nome ou papel invÃ¡lido." });
         }
 
-        bool emailUtilizado = await banco.Usuarios
-            .AnyAsync(outro => outro.Email == email && outro.Id != id);
+        int quantidadeEmails = await banco.Usuarios
+            .CountAsync(outro => outro.Email == email && outro.Id != id);
 
-        if (emailUtilizado)
+        if (quantidadeEmails > 0)
         {
-            return BadRequest(new { erro = "E-mail já utilizado." });
+            return BadRequest(new { erro = "E-mail jÃ¡ utilizado." });
         }
 
         usuario.Nome = nome;
@@ -137,7 +137,7 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
         return NoContent();
     }
 
-    // Exclui um usuário sem ocorrências vinculadas
+    // Exclui um usuÃ¡rio sem ocorrÃªncias vinculadas
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Excluir(int id)
     {
@@ -145,17 +145,17 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
 
         if (usuario is null)
         {
-            return NotFound(new { erro = "Usuário não encontrado." });
+            return NotFound(new { erro = "UsuÃ¡rio nÃ£o encontrado." });
         }
 
-        bool possuiOcorrencias = await banco.Ocorrencias
-            .AnyAsync(ocorrencia => ocorrencia.UsuarioId == id);
+        int quantidadeOcorrencias = await banco.Ocorrencias
+            .CountAsync(ocorrencia => ocorrencia.UsuarioId == id);
 
-        if (possuiOcorrencias)
+        if (quantidadeOcorrencias > 0)
         {
             return BadRequest(new
             {
-                erro = "O usuário possui ocorrências vinculadas e não pode ser excluído."
+                erro = "O usuÃ¡rio possui ocorrÃªncias vinculadas e nÃ£o pode ser excluÃ­do."
             });
         }
 
@@ -165,3 +165,4 @@ public class UsuariosController(BinovaDbContext banco) : ControllerBase
         return NoContent();
     }
 }
+

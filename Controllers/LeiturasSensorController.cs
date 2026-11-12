@@ -77,9 +77,9 @@ public class LeiturasSensorController(BinovaDbContext banco) : ControllerBase
     public async Task<IActionResult> Criar(
         [FromBody] LeituraEntrada entrada)
     {
-        bool pontoAtivo = await banco.PontosColeta
-            .AnyAsync(ponto =>
-                ponto.Id == entrada.PontoColetaId && ponto.Ativo);
+        bool pontoAtivo = (await banco.PontosColeta
+            .CountAsync(ponto =>
+                ponto.Id == entrada.PontoColetaId && ponto.Ativo)) > 0;
 
         if (!pontoAtivo)
         {
@@ -125,9 +125,9 @@ public class LeiturasSensorController(BinovaDbContext banco) : ControllerBase
             });
         }
 
-        bool pontoAtivo = await banco.PontosColeta
-            .AnyAsync(ponto =>
-                ponto.Id == entrada.PontoColetaId && ponto.Ativo);
+        bool pontoAtivo = (await banco.PontosColeta
+            .CountAsync(ponto =>
+                ponto.Id == entrada.PontoColetaId && ponto.Ativo)) > 0;
 
         if (!pontoAtivo)
         {

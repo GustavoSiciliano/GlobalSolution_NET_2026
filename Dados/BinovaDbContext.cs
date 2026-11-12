@@ -107,7 +107,6 @@ public class BinovaDbContext(DbContextOptions<BinovaDbContext> options)
 
             entidade.Property(ponto => ponto.Ativo)
                 .HasColumnName("ATIVO")
-                .HasConversion<int>()
                 .HasColumnType("NUMBER(1)");
 
             entidade.Property(ponto => ponto.CriadoEm)
