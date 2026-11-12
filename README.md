@@ -24,6 +24,15 @@ dotnet run --project .\Binova.Api.csproj
 
 Antes dos comandos, configure o Oracle em `appsettings.Development.json` e certifique-se de usar uma conta de teste autorizada. O último comando mantém a API ligada em `http://localhost:5086`; abra outro terminal para chamar os endpoints.
 
+### Entrega da disciplina - orientação do professor
+
+- **No Portal do Aluno:** enviar **um arquivo `.txt`** com nome, RM e turma de cada integrante, além do link do **repositório público** e do **vídeo**. O arquivo correspondente no projeto é `IDENTIFICACAO.txt`.
+- **No GitHub:** manter o projeto .NET na raiz do repositório, o `.gitignore`, as Migrations versionadas, este README e o diagrama de entidades.
+- **No YouTube:** disponibilizar o vídeo de até **5 minutos**, público ou não listado, demonstrando o CRUD e as tabelas no Oracle. [Vídeo do Binova (4min58s)](https://youtu.be/4oG6erDvQaQ).
+- **Apresentação da disciplina (30% da nota):** demonstrar CRUD completo de uma entidade com consulta no Oracle; explicar os relacionamentos 1:N, as Migrations, o fluxo rota → controller → DbContext → resposta HTTP; mostrar **POST inválido (400)** e **GET de ID inexistente (404)**; explicar a relação com CitizenTech, Mobile e DevOps.
+
+**Não é necessário enviar o código-fonte dentro do `.txt`: ele está disponível pelo link do GitHub.**
+
 ## 1. Apresentação do projeto
 
 O **Binova** é uma solução tecnológica desenvolvida para auxiliar no monitoramento de lixeiras comunitárias e no acompanhamento de problemas relacionados ao descarte de resíduos.
@@ -217,10 +226,13 @@ GlobalSolution_NET_2026/
 │   ├── SenhaService.cs
 │   └── SequenciaService.cs
 │
+├── Diagram/
+│   └── Diagrama.png
+│
+├── IDENTIFICACAO.txt
+│
 └── scripts/
-    ├── Verificar-Banco.sql
-    ├── testar-api.http
-    └── Testar-CRUD.ps1
+    └── testar-api.http
 ```
 
 ### Responsabilidade das pastas
@@ -233,7 +245,8 @@ GlobalSolution_NET_2026/
 | `Controllers` | Endpoints HTTP e operações de cada recurso. |
 | `Migrations` | Controle das alterações da estrutura do banco. |
 | `Servicos` | Funções auxiliares, como tratamento de senhas e geração de IDs. |
-| `scripts` | Consultas SQL e roteiros de teste da API. |
+| `Diagram` | Imagem do relacionamento entre as entidades (`Diagrama.png`). |
+| `scripts` | Requisições HTTP opcionais para testes da API. |
 
 ## 8. Configuração do ambiente
 
@@ -718,32 +731,60 @@ FROM PONTO_COLETA
 ORDER BY ID DESC;
 ```
 
-### 10.7 Testar os erros HTTP 400 e 404
+### 10.7 Demonstrar os erros HTTP 400 e 404
 
-Os dois testes abaixo **não inserem nem excluem dados**. O PowerShell lança uma exceção para códigos HTTP 4xx; o bloco captura apenas o status:
+O professor solicita especificamente um **POST inválido retornando 400** e um **GET de registro inexistente retornando 404**. Os dois testes abaixo podem ser executados **separadamente** em qualquer PowerShell com a API iniciada; não exigem IDs de testes anteriores nem alteram o banco.
+
+**POST inválido - e-mail sem formato válido (esperado: HTTP 400 e mensagem JSON):**
 
 ```powershell
-function Conferir-Status($url) {
-    try {
-        $resposta = Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop
-        "HTTP $([int]$resposta.StatusCode)"
-    }
-    catch {
-        if ($_.Exception.Response) {
-            "HTTP $([int]$_.Exception.Response.StatusCode)"
-        }
-        else { throw }
-    }
+try {
+    $resposta = Invoke-WebRequest -Uri "http://localhost:5086/api/usuarios" `
+        -Method Post -UseBasicParsing -ContentType "application/json" `
+        -Body '{"nome":"Usuario Teste","email":"invalido","senha":"Teste123456!","papel":"CIDADAO"}' `
+        -ErrorAction Stop
+    "HTTP $([int]$resposta.StatusCode)"
 }
-
-# Parâmetro inválido: deve retornar 400
-Conferir-Status "$baseUrl/leituras-sensor?pontoColetaId=0"
-
-# ID inexistente: deve retornar 404
-Conferir-Status "$baseUrl/usuarios/999999999"
+catch {
+    if ($_.Exception.Response) {
+        "HTTP $([int]$_.Exception.Response.StatusCode)"
+    }
+    else { throw }
+}
 ```
 
-O primeiro teste comprova a validação de entrada; o segundo comprova o tratamento de recurso não encontrado. Também é possível enviar um POST com e-mail inválido para verificar `400`, utilizando um cliente HTTP que mostre o corpo JSON de erro.
+**GET com ID inexistente (esperado: HTTP 404):**
+
+```powershell
+try {
+    $resposta = Invoke-WebRequest -Uri "http://localhost:5086/api/usuarios/999999999" `
+        -Method Get -UseBasicParsing -ErrorAction Stop
+    "HTTP $([int]$resposta.StatusCode)"
+}
+catch {
+    if ($_.Exception.Response) {
+        "HTTP $([int]$_.Exception.Response.StatusCode)"
+    }
+    else { throw }
+}
+```
+
+**Teste complementar de validação de parâmetro (HTTP 400):**
+
+```powershell
+try {
+    Invoke-WebRequest -Uri "http://localhost:5086/api/leituras-sensor?pontoColetaId=0" `
+        -Method Get -UseBasicParsing -ErrorAction Stop | Out-Null
+}
+catch {
+    if ($_.Exception.Response) {
+        "HTTP $([int]$_.Exception.Response.StatusCode)"
+    }
+    else { throw }
+}
+```
+
+As respostas 400 são produzidas pelas validações da API, enquanto o 404 corresponde à consulta de um recurso inexistente. Os controllers devolvem mensagens de erro em JSON.
 
 ### 10.8 Conferência direta no Oracle
 
@@ -754,15 +795,22 @@ SELECT COUNT(*) AS TOTAL_USUARIOS FROM USUARIO;
 SELECT COUNT(*) AS TOTAL_PONTOS FROM PONTO_COLETA;
 SELECT COUNT(*) AS TOTAL_LEITURAS FROM LEITURA_SENSOR;
 SELECT COUNT(*) AS TOTAL_OCORRENCIAS FROM OCORRENCIA;
+
+-- Para comprovar o cadastro na apresentação, consulte os usuários recentes
+-- e identifique o ID exibido no POST (antes de executar o DELETE).
+SELECT ID, NOME, EMAIL, PAPEL
+FROM USUARIO
+ORDER BY ID DESC
+FETCH FIRST 10 ROWS ONLY;
 ```
 
 Depois dos POSTs, as contagens aumentam. Depois dos DELETEs, os registros de usuário, leitura e ocorrência utilizados no teste são removidos; o ponto permanece com `ATIVO = 0`. A leitura anterior já pode constar de outras medições e o sistema pode conter dados adicionais - não espere quantidades fixas em schemas compartilhados.
 
-## 11. Demonstração rápida — CRUD de USUARIO (caminho utilizado no vídeo)
+## 11. Demonstração rápida - CRUD de USUARIO (caminho utilizado no vídeo)
 
 Para uma demonstração curta, o recurso `USUARIO` pode ser utilizado isoladamente: ele não depende de cadastrar um ponto, uma leitura ou uma ocorrência. **Use um segundo PowerShell com a API já iniciada e mantenha a mesma janela nos quatro comandos.** Não é necessário criar arquivos `.ps1` nem definir a função `Testar-Api`.
 
-**11.1 POST — criar o usuário (HTTP 201)**
+**11.1 POST - criar o usuário (HTTP 201)**
 
 ```powershell
 $emailDemo = "binova.$([guid]::NewGuid().ToString('N').Substring(0,8))@example.com"
@@ -774,7 +822,7 @@ if (-not $idDemo) { throw "POST sem ID. Verifique o retorno antes de continuar."
 Write-Host "POST HTTP $($r.StatusCode) - ID: $idDemo"
 ```
 
-**11.2 GET — consultar o usuário (HTTP 200)**
+**11.2 GET - consultar o usuário (HTTP 200)**
 
 ```powershell
 if (-not $idDemo) { throw "Execute primeiro o POST." }
@@ -783,7 +831,7 @@ Write-Host "GET HTTP $($r.StatusCode)"
 $r.Content | ConvertFrom-Json | Format-List
 ```
 
-**11.3 PUT — atualizar o usuário (HTTP 204)**
+**11.3 PUT - atualizar o usuário (HTTP 204)**
 
 ```powershell
 if (-not $idDemo) { throw "Execute primeiro o POST." }
@@ -793,7 +841,7 @@ $r = Invoke-WebRequest -Uri "http://localhost:5086/api/usuarios/$idDemo" `
 Write-Host "PUT HTTP $($r.StatusCode)"
 ```
 
-**11.4 DELETE — excluir o usuário (HTTP 204)**
+**11.4 DELETE - excluir o usuário (HTTP 204)**
 
 ```powershell
 if (-not $idDemo) { throw "Execute primeiro o POST." }
@@ -802,7 +850,7 @@ $r = Invoke-WebRequest -Uri "http://localhost:5086/api/usuarios/$idDemo" `
 Write-Host "DELETE HTTP $($r.StatusCode)"
 ```
 
-Esse DELETE é apropriado somente para o usuário recém-criado sem ocorrências vinculadas. Para demonstrar `400` e `404`, utilize os dois comandos da seção **10.7**.
+Esse DELETE é apropriado somente para o usuário recém-criado sem ocorrências vinculadas. Para demonstrar `400` e `404` conforme o professor solicita, utilize os comandos de POST inválido e GET inexistente da seção **10.7**.
 
 ## 12. Solução de problemas pelo terminal (PowerShell)
 
@@ -910,4 +958,4 @@ O manifesto `.config/dotnet-tools.json` precisa estar no clone. Se o build foi c
 
 ---
 
-**Evidência da apresentação:** [Vídeo Binova — API .NET (4min58s)](https://youtu.be/4oG6erDvQaQ). **Código-fonte:** [GitHub GlobalSolution_NET_2026](https://github.com/GustavoSiciliano/GlobalSolution_NET_2026).
+**Evidência da apresentação:** [Vídeo Binova - API .NET (4min58s)](https://youtu.be/4oG6erDvQaQ). **Código-fonte:** [GitHub GlobalSolution_NET_2026](https://github.com/GustavoSiciliano/GlobalSolution_NET_2026).
