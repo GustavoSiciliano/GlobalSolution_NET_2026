@@ -4,6 +4,21 @@
 **Disciplina:** Advanced Business Development with .NET  
 **Repositório:** https://github.com/GustavoSiciliano/GlobalSolution_NET_2026
 
+
+> **Para o professor - roteiro de avaliação manual:** siga a [configuração e execução](#8-configuração-do-ambiente) e, com a API aberta, use o [roteiro completo de testes](#10-roteiro-de-avaliação-manual). Os exemplos criam seus próprios dados; não dependem dos IDs existentes no banco.
+
+**Resumo da execução (PowerShell, na raiz do repositório):**
+
+```powershell
+dotnet tool restore
+dotnet restore .\Binova.Api.csproj
+dotnet build .\Binova.Api.csproj
+dotnet ef database update --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj
+dotnet run --project .\Binova.Api.csproj
+```
+
+Antes dos comandos, configure o Oracle em `appsettings.Development.json` e certifique-se de usar uma conta de teste autorizada. O último comando mantém a API ligada em `http://localhost:5086`; abra outro terminal para chamar os endpoints. **Não é preciso instalar Swagger ou executar scripts de testes automatizados.**
+
 ## 1. Apresentação do projeto
 
 O **Binova** é uma solução tecnológica desenvolvida para auxiliar no monitoramento de lixeiras comunitárias e no acompanhamento de problemas relacionados ao descarte de resíduos.
@@ -49,7 +64,7 @@ O desenvolvimento utiliza as seguintes tecnologias:
 | Serviço | `orcl` |
 | Banco | Oracle da FIAP |
 
-A conexão deve utilizar o mesmo usuário Oracle em que os scripts de Banco de Dados do Binova foram executados.
+A API deve acessar um schema Oracle com as quatro tabelas do Binova. Pode ser o schema dos scripts da disciplina de Banco de Dados ou um schema de teste separado, preparado pela Migration do .NET.
 
 ## 4. Modelo de dados
 
@@ -124,7 +139,7 @@ Os campos de data utilizam `TIMESTAMP WITH TIME ZONE`, conforme o modelo Oracle 
 
 ## 5. Integração com o banco
 
-A API .NET foi preparada para utilizar as mesmas tabelas criadas na disciplina de Banco de Dados.
+A API .NET utiliza a mesma estrutura de tabelas definida na disciplina de Banco de Dados.
 
 Dessa forma, não é necessário manter uma segunda estrutura com tabelas específicas para .NET. A proposta é aproveitar os registros já existentes e permitir que a aplicação consulte e manipule essas informações.
 
@@ -135,7 +150,7 @@ As tabelas utilizadas são:
 - `LEITURA_SENSOR`
 - `OCORRENCIA`
 
-A estrutura do projeto prevê a preservação das tabelas e de seus registros. A criação de novos identificadores é feita por meio de sequências Oracle, planejadas para iniciar após os maiores IDs existentes.
+A Migration inicial pode criar as tabelas em um schema ainda vazio ou reconhecer tabelas que já existam. Os novos identificadores são gerados por sequências Oracle. Se o schema já contém dados, confira as sequências e as estruturas antes de aplicar mudanças.
 
 ## 6. Migrations
 
@@ -170,6 +185,8 @@ O repositório está organizado para separar a configuração da aplicação, o 
 GlobalSolution_NET_2026/
 │
 ├── Binova.Api.csproj
+├── .config/
+│   └── dotnet-tools.json
 ├── Binova.sln
 ├── Program.cs
 ├── appsettings.json
@@ -222,193 +239,501 @@ GlobalSolution_NET_2026/
 
 ## 8. Configuração do ambiente
 
+Este procedimento reproduz o ambiente utilizado nos testes do projeto. Os comandos são para **PowerShell no Windows**, executados na raiz do repositório (pasta que contém `Binova.Api.csproj`).
+
 ### 8.1 Pré-requisitos
 
-Para executar o projeto, são necessários:
+- .NET SDK compatível com o projeto **.NET 8** (`dotnet --version` para conferir).
+- Acesso à rede e ao Oracle da FIAP.
+- Conta Oracle própria para avaliação, com permissão para criar as estruturas necessárias.
+- PowerShell, Visual Studio ou VS Code; para enviar requisições, PowerShell, Postman ou Insomnia.
+- Código-fonte completo do repositório, incluindo a pasta `Migrations` e o manifesto `.config/dotnet-tools.json`.
 
-- .NET SDK 8 instalado.
-- Acesso ao banco Oracle da FIAP.
-- Credenciais de um usuário com as permissões necessárias.
-- Acesso à internet ou à rede exigida pela FIAP para a conexão com o Oracle.
-- Terminal PowerShell ou equivalente.
+> O projeto usa **controllers** e **não depende de Swagger**. As operações são testadas pelas URLs HTTP descritas abaixo. Se a porta `5086` já estiver ocupada, encerre a instância anterior da API antes de iniciá-la novamente.
 
-### 8.2 Configurar a conexão Oracle
+### 8.2 Obter o código e abrir a pasta correta
 
-Na pasta principal do projeto, execute:
+Faça o clone pelo Git ou baixe o ZIP do GitHub e extraia:
 
 ```powershell
-Copy-Item appsettings.Development.example.json appsettings.Development.json
+git clone https://github.com/GustavoSiciliano/GlobalSolution_NET_2026.git
+cd .\GlobalSolution_NET_2026
 ```
 
-Depois, edite o arquivo `appsettings.Development.json` e configure a conexão com o Oracle utilizando as credenciais da equipe.
+Se utilizou **Download ZIP**, apenas abra o terminal na pasta extraída que contém `Binova.Api.csproj`. Não é necessário executar `git clone` nesse caso.
 
-Como alternativa, a connection string pode ser fornecida pela variável de ambiente:
+> Os comandos abaixo indicam o projeto explicitamente porque uma pasta com mais de um `.csproj` ou `.sln` pode fazer `dotnet build` sem argumentos retornar `MSB1011`.
 
-`ConnectionStrings__Oracle`
+### 8.3 Configurar o acesso ao Oracle
 
-O arquivo `appsettings.Development.json` deve permanecer apenas no computador utilizado para os testes.
+Crie o arquivo local de desenvolvimento a partir do exemplo:
 
-**Nunca envie a senha do Oracle para o GitHub.**
+```powershell
+Copy-Item .\appsettings.Development.example.json .\appsettings.Development.json
+```
 
-### 8.3 Restaurar e compilar
+Abra `appsettings.Development.json` e configure **seu próprio usuário e senha**:
 
-Na raiz do projeto, execute:
+```json
+{
+  "ConnectionStrings": {
+    "Oracle": "User Id=SEU_USUARIO_ORACLE;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/orcl;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+```
+
+Use o usuário exato fornecido pela FIAP (inclusive o prefixo `RM`, **se fizer parte do login**). O arquivo é **local, não deve ser publicado** e deve continuar no `.gitignore`. Nunca coloque credenciais reais no README, nos commits ou no vídeo.
+
+No PowerShell do projeto, configure o ambiente antes de aplicar a Migration:
+
+```powershell
+$env:DOTNET_ENVIRONMENT = "Development"
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+```
+
+### 8.4 Restaurar ferramentas e compilar
 
 ```powershell
 dotnet --version
 dotnet tool restore
-dotnet restore
-dotnet build
+dotnet restore .\Binova.Api.csproj
+dotnet build .\Binova.Api.csproj
 ```
 
-O comando de compilação deverá concluir sem erros antes da execução da API.
+O esperado é **`Build succeeded` / `Construir êxito`**, sem erros. O projeto usa `dotnet-ef` 8 na configuração local; **não é necessário atualizar para uma versão de EF diferente da utilizada pela aplicação**.
 
-### 8.4 Conferir as Migrations
+### 8.5 Aplicar a Migration no Oracle
 
-Para listar as Migrations disponíveis:
+**Antes de executar**, confirme que a connection string aponta para a conta Oracle escolhida para o teste. Preferencialmente use um **schema de avaliação sem dados importantes**. A Migration da entrega utiliza os nomes originais `USUARIO`, `PONTO_COLETA`, `LEITURA_SENSOR` e `OCORRENCIA`, **não** os nomes temporários `_TESTE` utilizados durante o desenvolvimento.
+
+Confira as Migrations disponíveis:
 
 ```powershell
-dotnet ef migrations list
+dotnet ef migrations list --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj
 ```
 
-Após verificar a conexão com o Oracle e revisar as alterações previstas, aplique a Migration no ambiente adequado:
+Aplique:
 
 ```powershell
-dotnet ef database update
+dotnet ef database update --project .\Binova.Api.csproj --startup-project .\Binova.Api.csproj
 ```
 
-Como o schema contém tabelas utilizadas por outra disciplina, essa etapa exige atenção para preservar os dados existentes.
+Na primeira aplicação da Migration, o terminal poderá mostrar:
 
-### 8.5 Iniciar a aplicação
+```text
+Build succeeded.
+Applying migration '20261109000100_CriacaoInicial'.
+Done.
+```
 
-Execute:
+Em execuções seguintes, a Migration pode já estar registrada e não ser executada novamente - isso é normal. **`Done.` por si só não comprova a existência das quatro tabelas**; confirme a estrutura no SQL Developer:
+
+```sql
+SELECT USER AS USUARIO_ATUAL FROM DUAL;
+
+SELECT TABLE_NAME
+FROM USER_TABLES
+WHERE TABLE_NAME IN ('USUARIO', 'PONTO_COLETA', 'LEITURA_SENSOR', 'OCORRENCIA')
+ORDER BY TABLE_NAME;
+
+SELECT SEQUENCE_NAME
+FROM USER_SEQUENCES
+WHERE SEQUENCE_NAME IN (
+    'BINOVA_USUARIO_SEQ',
+    'BINOVA_PONTO_SEQ',
+    'BINOVA_LEITURA_SEQ',
+    'BINOVA_OCORRENCIA_SEQ'
+)
+ORDER BY SEQUENCE_NAME;
+
+SELECT * FROM BINOVA_EF_MIGRATIONS;
+```
+
+O esperado são **quatro tabelas**, **quatro sequências** e o registro `20261109000100_CriacaoInicial` no histórico. Caso o histórico ainda não exista, revise o resultado da Migration antes de continuar. As consultas SQL devem ser executadas **na mesma conta Oracle configurada na API**.
+
+**Não execute `DROP TABLE` ou `dotnet ef database drop`.** A Migration foi desenvolvida para não eliminar tabelas compartilhadas.
+
+### 8.6 Iniciar a aplicação
+
+Com a compilação bem-sucedida, execute:
 
 ```powershell
-dotnet run --launch-profile http
+dotnet run --project .\Binova.Api.csproj
 ```
 
-O endereço HTTP configurado para o projeto é:
+O terminal deve mostrar algo semelhante a:
 
-http://localhost:5086
+```text
+Now listening on: http://localhost:5086
+Application started.
+```
 
-## 9. Endpoints da API
+**Mantenha esse terminal aberto.** Use **outro PowerShell** para os testes. Para encerrar a API depois, utilize `Ctrl + C` no terminal em que ela foi iniciada.
 
-A API disponibiliza operações CRUD para as quatro entidades principais.
+## 9. Endpoints e respostas HTTP
 
-| Recurso | Rota principal | Métodos |
-|---|---|---|
-| Usuários | `/api/usuarios` | GET, POST, PUT, DELETE |
-| Pontos de coleta | `/api/pontos-coleta` | GET, POST, PUT, DELETE |
-| Leituras de sensores | `/api/leituras-sensor` | GET, POST, PUT, DELETE |
-| Ocorrências | `/api/ocorrencias` | GET, POST, PUT, DELETE |
+A URL base dos exemplos é `http://localhost:5086/api`. Em Postman ou Insomnia, selecione o método HTTP indicado, informe essa URL e, para POST/PUT, escolha **Body → raw → JSON** com `Content-Type: application/json`.
 
-Cada recurso oferece consulta da lista e consulta individual por ID.
+| Recurso | Listar | Consultar por ID | Criar | Atualizar | Excluir |
+|---|---|---|---|---|---|
+| Usuários | `GET /usuarios` | `GET /usuarios/{id}` | `POST /usuarios` | `PUT /usuarios/{id}` | `DELETE /usuarios/{id}` |
+| Pontos de coleta | `GET /pontos-coleta` | `GET /pontos-coleta/{id}` | `POST /pontos-coleta` | `PUT /pontos-coleta/{id}` | `DELETE /pontos-coleta/{id}` |
+| Leituras | `GET /leituras-sensor` | `GET /leituras-sensor/{id}` | `POST /leituras-sensor` | `PUT /leituras-sensor/{id}` | `DELETE /leituras-sensor/{id}` |
+| Ocorrências | `GET /ocorrencias` | `GET /ocorrencias/{id}` | `POST /ocorrencias` | `PUT /ocorrencias/{id}` | `DELETE /ocorrencias/{id}` |
 
-### 9.1 Códigos HTTP
+Códigos esperados: **GET `200 OK`**, **POST `201 Created`**, **PUT `204 No Content`**, **DELETE `204 No Content`**, dados inválidos **`400 Bad Request`**, registro não encontrado **`404 Not Found`**.
 
-Os endpoints seguem os códigos HTTP definidos no enunciado da disciplina:
+Rotas adicionais:
 
-| Código | Significado | Utilização |
-|---|---|---|
-| `200 OK` | Requisição realizada com sucesso | Consultas GET |
-| `201 Created` | Recurso criado | Cadastro POST |
-| `204 No Content` | Operação concluída sem corpo de resposta | Atualização PUT e exclusão DELETE |
-| `400 Bad Request` | Dados inválidos | Falha de validação |
-| `404 Not Found` | Recurso não encontrado | Consulta ou alteração de ID inexistente |
-
-As respostas de erro são apresentadas em JSON, facilitando a identificação do problema encontrado durante os testes.
-
-### 9.2 Consulta da situação dos pontos
-
-Além do CRUD, a API disponibiliza:
-
-`GET /api/pontos-coleta/{id}/situacao`
-
-Esse endpoint consulta a última leitura do ponto de coleta e informa a condição de preenchimento da lixeira.
-
-| Percentual | Situação |
+| Método e rota | Finalidade |
 |---|---|
-| Abaixo de 50% | `DISPONIVEL` |
-| De 50% até menos de 80% | `ATENCAO` |
-| A partir de 80% | `PROXIMA_DO_LIMITE` |
-| Leitura desatualizada ou ausente | `SEM_DADOS_ATUALIZADOS` |
+| `GET /pontos-coleta?incluirInativos=true` | Inclui pontos de coleta desativados |
+| `GET /pontos-coleta/{id}/situacao` | Situação baseada na última leitura |
+| `GET /leituras-sensor?pontoColetaId={id}` | Leituras de um ponto específico |
+| `GET /ocorrencias?pontoColetaId={id}` | Ocorrências de um ponto específico |
+| `GET /ocorrencias?status=ABERTA` | Ocorrências com status aberto |
 
-Uma leitura é considerada recente quando foi registrada nos últimos 15 minutos.
+A situação de um ponto utiliza a última leitura: abaixo de 50% é `DISPONIVEL`; de 50% até menos de 80% é `ATENCAO`; a partir de 80% é `PROXIMA_DO_LIMITE`. Uma leitura ausente ou com mais de 15 minutos resulta em `SEM_DADOS_ATUALIZADOS`. A classificação depende do horário da consulta.
 
-Essa classificação auxilia na identificação de pontos que podem exigir atenção da equipe responsável pela coleta.
+## 10. Roteiro de avaliação manual
 
-## 10. Testes da API
+O roteiro permite reproduzir **GET, POST, PUT e DELETE para todas as quatro entidades**, além de testar **400 e 404**, sem depender de registros preexistentes. Utilize um **schema Oracle de testes**, pois as operações alteram dados. O teste completo usa dois terminais: um para a API e outro para as requisições.
 
-Os testes devem verificar o funcionamento dos endpoints, a persistência dos dados no Oracle e o tratamento das respostas HTTP.
+### 10.1 Preparar o segundo terminal
 
-### 10.1 Verificar os dados existentes
-
-Antes de cadastrar novos registros, consulte os seguintes endpoints:
-
-```http
-GET http://localhost:5086/api/usuarios
-
-GET http://localhost:5086/api/pontos-coleta?incluirInativos=true
-
-GET http://localhost:5086/api/leituras-sensor
-
-GET http://localhost:5086/api/ocorrencias
-```
-
-Se a API estiver conectada ao mesmo schema utilizado na disciplina de Banco de Dados, os registros anteriormente cadastrados deverão aparecer nas respostas.
-
-O arquivo `scripts/Verificar-Banco.sql` também pode ser executado no Oracle SQL Developer para conferir as informações diretamente no banco.
-
-### 10.2 Testar as operações CRUD
-
-O projeto disponibiliza um roteiro de testes em PowerShell:
+Abra outro PowerShell e defina a URL base:
 
 ```powershell
-.\scripts\Testar-CRUD.ps1
+$ErrorActionPreference = "Stop"
+$baseUrl = "http://localhost:5086/api"
 ```
 
-O script foi preparado para executar operações de cadastro, consulta, atualização e exclusão, além de verificar os principais códigos HTTP.
+**Execute todos os próximos blocos no mesmo segundo terminal**, para reutilizar as variáveis que guardam os IDs de cada novo registro. Se usar Postman, copie os mesmos JSONs e **anote o campo `id` da resposta de cada POST** para utilizar nos PUTs e DELETEs.
 
-A exclusão de pontos de coleta utiliza desativação lógica para preservar o histórico associado.
+### 10.2 GET - conferir que a API responde
 
-### 10.3 Testar erros de validação
+```powershell
+Invoke-RestMethod "$baseUrl/usuarios"
+Invoke-RestMethod "$baseUrl/pontos-coleta"
+Invoke-RestMethod "$baseUrl/pontos-coleta?incluirInativos=true"
+Invoke-RestMethod "$baseUrl/leituras-sensor"
+Invoke-RestMethod "$baseUrl/ocorrencias"
+```
 
-O arquivo `scripts/testar-api.http` contém requisições que permitem verificar situações como:
+**Resultado esperado:** todas as chamadas retornam HTTP `200`, inclusive quando as listas estão vazias. O GET de pontos sem parâmetro mostra apenas os ativos.
 
-- Envio de dados obrigatórios vazios.
-- Valores numéricos fora dos limites permitidos.
-- Consulta de IDs inexistentes.
-- Tentativa de vincular registros a entidades não encontradas.
+### 10.3 POST - criar quatro registros relacionados
 
-Para dados inválidos, a API deverá retornar `400 Bad Request`. Para recursos inexistentes, o retorno esperado é `404 Not Found`.
+A ordem é importante: **usuário → ponto de coleta → leitura → ocorrência**. Cada POST deve retornar **`201 Created`** e o `id` recém-criado. Os exemplos JSON a seguir também podem ser copiados diretamente para o Postman.
 
-## 11. Integração com as demais disciplinas
+**POST 1 - Usuário** (`POST /api/usuarios`):
 
-O Binova foi desenvolvido como uma proposta única para a Global Solution, permitindo que cada disciplina trabalhe uma parte da solução.
+```json
+{
+  "nome": "Usuario Avaliacao Binova",
+  "email": "avaliacao.binova123@example.com",
+  "senha": "Teste123456!",
+  "papel": "CIDADAO"
+}
+```
 
-A API .NET utiliza o mesmo domínio de dados das demais entregas, mas possui implementação própria.
+No PowerShell, utilize um e-mail único para permitir repetir o teste sem conflito de duplicidade:
 
-| Disciplina | Relação com o Binova |
-|---|---|
-| Java Advanced | API REST com autenticação, regras de negócio e consultas. |
-| Banco de Dados | Modelagem Oracle e implementação SQL/PLSQL. |
-| Mobile | Aplicativo para consulta dos pontos de coleta e registro de informações. |
-| IoT | Medição do preenchimento das lixeiras por sensores. |
-| DevOps | Preparação do ambiente, containers e execução da aplicação. |
-| QA | Modelagem da arquitetura e análise da solução. |
+```powershell
+$emailTeste = "binova.$([guid]::NewGuid().ToString('N').Substring(0,8))@example.com"
+$usuarioBody = @{
+    nome = "Usuario Avaliacao Binova"
+    email = $emailTeste
+    senha = "Teste123456!"
+    papel = "CIDADAO"
+} | ConvertTo-Json
 
-O compartilhamento do domínio facilita a integração conceitual entre as entregas. Cada aplicação pode utilizar sua própria infraestrutura, conforme os requisitos da disciplina.
+$usuarioCriado = Invoke-RestMethod -Uri "$baseUrl/usuarios" -Method Post `
+    -ContentType "application/json" -Body $usuarioBody
+"Usuario criado - ID: $($usuarioCriado.id)"
+```
 
-## 12. Requisitos de avaliação da FIAP
+**POST 2 - Ponto de coleta** (`POST /api/pontos-coleta`):
 
-A implementação foi organizada considerando os critérios definidos para Advanced Business Development with .NET.
+```json
+{
+  "nome": "Ecoponto de Avaliacao",
+  "descricaoLocalizacao": "Entrada principal da faculdade",
+  "capacidadeLitros": 200,
+  "ativo": true
+}
+```
 
-| Critério | Pontuação | Arquivos relacionados |
-|---|---:|---|
-| API REST em ASP.NET Core 8 | 20 | `Program.cs` e `Controllers/` |
-| Entidades relacionadas e validações | 20 | `Modelos/`, `Contratos/` e `Dados/` |
-| Entity Framework Core, Oracle e Migrations | 25 | `Dados/` e `Migrations/` |
-| CRUD completo e respostas HTTP | 20 | `Controllers/` |
-| Tratamento de erros 400 e 404 | 10 | `Contratos/` e `Controllers/` |
-| Documentação do projeto | 5 | `README.md` |
-| **Total** | **100** | |
+```powershell
+$pontoBody = @{
+    nome = "Ecoponto de Avaliacao"
+    descricaoLocalizacao = "Entrada principal da faculdade"
+    capacidadeLitros = 200
+    ativo = $true
+} | ConvertTo-Json
+
+$pontoCriado = Invoke-RestMethod -Uri "$baseUrl/pontos-coleta" -Method Post `
+    -ContentType "application/json" -Body $pontoBody
+"Ponto criado - ID: $($pontoCriado.id)"
+```
+
+**POST 3 - Leitura do sensor** (`POST /api/leituras-sensor`): a leitura precisa do ID do ponto que acabou de ser criado.
+
+```json
+{
+  "pontoColetaId": 11,
+  "distanciaCm": 25.5,
+  "nivelPercentual": 75
+}
+```
+
+**O `11` acima é apenas um exemplo de ID para o Postman. Substitua pelo `id` retornado no POST do ponto de coleta.** No PowerShell, a referência é preenchida automaticamente:
+
+```powershell
+$leituraBody = @{
+    pontoColetaId = $pontoCriado.id
+    distanciaCm = 25.5
+    nivelPercentual = 75
+} | ConvertTo-Json
+
+$leituraCriada = Invoke-RestMethod -Uri "$baseUrl/leituras-sensor" -Method Post `
+    -ContentType "application/json" -Body $leituraBody
+"Leitura criada - ID: $($leituraCriada.id)"
+```
+
+**POST 4 - Ocorrência** (`POST /api/ocorrencias`): depende de um ponto ativo e de um usuário válido.
+
+```json
+{
+  "usuarioId": 12,
+  "pontoColetaId": 11,
+  "tipo": "LIXEIRA_CHEIA",
+  "descricao": "Ponto de coleta necessita de recolhimento."
+}
+```
+
+**Os IDs `12` e `11` acima também são ilustrativos.** No Postman, substitua pelos IDs retornados. No PowerShell:
+
+```powershell
+$ocorrenciaBody = @{
+    usuarioId = $usuarioCriado.id
+    pontoColetaId = $pontoCriado.id
+    tipo = "LIXEIRA_CHEIA"
+    descricao = "Ponto de coleta necessita de recolhimento."
+} | ConvertTo-Json
+
+$ocorrenciaCriada = Invoke-RestMethod -Uri "$baseUrl/ocorrencias" -Method Post `
+    -ContentType "application/json" -Body $ocorrenciaBody
+"Ocorrencia criada - ID: $($ocorrenciaCriada.id)"
+```
+
+Confirme os quatro IDs criados:
+
+```powershell
+"Usuario: $($usuarioCriado.id)"
+"Ponto de coleta: $($pontoCriado.id)"
+"Leitura: $($leituraCriada.id)"
+"Ocorrencia: $($ocorrenciaCriada.id)"
+```
+
+### 10.4 GET por ID - conferir os cadastros
+
+```powershell
+Invoke-RestMethod "$baseUrl/usuarios/$($usuarioCriado.id)"
+Invoke-RestMethod "$baseUrl/pontos-coleta/$($pontoCriado.id)"
+Invoke-RestMethod "$baseUrl/leituras-sensor/$($leituraCriada.id)"
+Invoke-RestMethod "$baseUrl/ocorrencias/$($ocorrenciaCriada.id)"
+Invoke-RestMethod "$baseUrl/pontos-coleta/$($pontoCriado.id)/situacao"
+```
+
+**Resultado esperado:** `200 OK`. Os IDs e dados devem corresponder aos POSTs. Logo após registrar uma leitura de 75%, o endpoint de situação pode exibir `ATENCAO`; se a leitura já estiver desatualizada, apresentará `SEM_DADOS_ATUALIZADOS`.
+
+### 10.5 PUT - atualizar os mesmos quatro registros
+
+Execute na ordem desejada. Cada `PUT` deve retornar **`204 No Content`**. Em PowerShell, esse status normalmente não exibe corpo de resposta; o comando só apresenta saída em caso de erro ou se for feita outra consulta.
+
+**PUT 1 - Usuário** (`PUT /api/usuarios/{id}`), sem enviar senha:
+
+```json
+{
+  "nome": "Usuario Avaliacao Atualizado",
+  "email": "avaliacao.binova123@example.com",
+  "papel": "CIDADAO"
+}
+```
+
+```powershell
+$usuarioAtualizacao = @{
+    nome = "Usuario Avaliacao Atualizado"
+    email = $usuarioCriado.email
+    papel = "CIDADAO"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "$baseUrl/usuarios/$($usuarioCriado.id)" -Method Put `
+    -ContentType "application/json" -Body $usuarioAtualizacao
+"PUT usuario concluido"
+```
+
+**PUT 2 - Ponto de coleta** (`PUT /api/pontos-coleta/{id}`):
+
+```json
+{
+  "nome": "Ecoponto de Avaliacao Atualizado",
+  "descricaoLocalizacao": "Entrada principal - Bloco B",
+  "capacidadeLitros": 300,
+  "ativo": true
+}
+```
+
+```powershell
+$pontoAtualizacao = @{
+    nome = "Ecoponto de Avaliacao Atualizado"
+    descricaoLocalizacao = "Entrada principal - Bloco B"
+    capacidadeLitros = 300
+    ativo = $true
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "$baseUrl/pontos-coleta/$($pontoCriado.id)" -Method Put `
+    -ContentType "application/json" -Body $pontoAtualizacao
+"PUT ponto de coleta concluido"
+```
+
+**PUT 3 - Leitura do sensor** (`PUT /api/leituras-sensor/{id}`):
+
+```json
+{
+  "pontoColetaId": 11,
+  "distanciaCm": 15.5,
+  "nivelPercentual": 90
+}
+```
+
+Troque o `11` pelo ID do ponto no Postman. No PowerShell:
+
+```powershell
+$leituraAtualizacao = @{
+    pontoColetaId = $pontoCriado.id
+    distanciaCm = 15.5
+    nivelPercentual = 90
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "$baseUrl/leituras-sensor/$($leituraCriada.id)" -Method Put `
+    -ContentType "application/json" -Body $leituraAtualizacao
+"PUT leitura concluido"
+```
+
+**PUT 4 - Ocorrência** (`PUT /api/ocorrencias/{id}`):
+
+```json
+{
+  "tipo": "LIXEIRA_CHEIA",
+  "descricao": "Equipe de coleta acionada para recolhimento.",
+  "status": "EM_ATENDIMENTO"
+}
+```
+
+```powershell
+$ocorrenciaAtualizacao = @{
+    tipo = "LIXEIRA_CHEIA"
+    descricao = "Equipe de coleta acionada para recolhimento."
+    status = "EM_ATENDIMENTO"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "$baseUrl/ocorrencias/$($ocorrenciaCriada.id)" -Method Put `
+    -ContentType "application/json" -Body $ocorrenciaAtualizacao
+"PUT ocorrencia concluido"
+```
+
+Confira se as alterações persistiram:
+
+```powershell
+Invoke-RestMethod "$baseUrl/usuarios/$($usuarioCriado.id)"
+Invoke-RestMethod "$baseUrl/pontos-coleta/$($pontoCriado.id)"
+Invoke-RestMethod "$baseUrl/leituras-sensor/$($leituraCriada.id)"
+Invoke-RestMethod "$baseUrl/ocorrencias/$($ocorrenciaCriada.id)"
+```
+
+### 10.6 DELETE - remover os registros criados no próprio teste
+
+**Atenção: o DELETE altera o banco.** Execute esta etapa somente depois de verificar os POSTs e PUTs e somente em um schema de avaliação. Use os IDs **gerados nos seus próprios POSTs**, não IDs de outros registros.
+
+A ordem evita violar relacionamentos: **ocorrência → leitura → usuário → ponto de coleta**. A exclusão do ponto de coleta é **lógica**: ele permanece na tabela Oracle, com `ATIVO = 0`.
+
+```powershell
+Invoke-RestMethod -Uri "$baseUrl/ocorrencias/$($ocorrenciaCriada.id)" -Method Delete
+"DELETE ocorrencia concluido"
+
+Invoke-RestMethod -Uri "$baseUrl/leituras-sensor/$($leituraCriada.id)" -Method Delete
+"DELETE leitura concluido"
+
+Invoke-RestMethod -Uri "$baseUrl/usuarios/$($usuarioCriado.id)" -Method Delete
+"DELETE usuario concluido"
+
+Invoke-RestMethod -Uri "$baseUrl/pontos-coleta/$($pontoCriado.id)" -Method Delete
+"DELETE ponto de coleta concluido (desativacao logica)"
+```
+
+**Resultado esperado:** cada chamada retorna `204 No Content`. Como os dados são de teste, o usuário não deve ter outras ocorrências vinculadas. Caso tenha, o controller impede a exclusão e retorna `400`.
+
+Confira que o ponto deixou de aparecer entre os ativos, mas continua entre os inativos:
+
+```powershell
+Invoke-RestMethod "$baseUrl/pontos-coleta"
+Invoke-RestMethod "$baseUrl/pontos-coleta?incluirInativos=true" |
+    Where-Object { $_.id -eq $pontoCriado.id }
+```
+
+No Oracle, também é possível confirmar o valor `ATIVO = 0` com:
+
+```sql
+SELECT ID, NOME, ATIVO
+FROM PONTO_COLETA
+ORDER BY ID DESC;
+```
+
+### 10.7 Testar os erros HTTP 400 e 404
+
+Os dois testes abaixo **não inserem nem excluem dados**. O PowerShell lança uma exceção para códigos HTTP 4xx; o bloco captura apenas o status:
+
+```powershell
+function Conferir-Status($url) {
+    try {
+        $resposta = Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop
+        "HTTP $([int]$resposta.StatusCode)"
+    }
+    catch {
+        if ($_.Exception.Response) {
+            "HTTP $([int]$_.Exception.Response.StatusCode)"
+        }
+        else { throw }
+    }
+}
+
+# Parâmetro inválido: deve retornar 400
+Conferir-Status "$baseUrl/leituras-sensor?pontoColetaId=0"
+
+# ID inexistente: deve retornar 404
+Conferir-Status "$baseUrl/usuarios/999999999"
+```
+
+O primeiro teste comprova a validação de entrada; o segundo comprova o tratamento de recurso não encontrado. Também é possível enviar um POST com e-mail inválido para verificar `400`, utilizando um cliente HTTP que mostre o corpo JSON de erro.
+
+### 10.8 Conferência direta no Oracle
+
+Conectado ao mesmo schema, execute no SQL Developer:
+
+```sql
+SELECT COUNT(*) AS TOTAL_USUARIOS FROM USUARIO;
+SELECT COUNT(*) AS TOTAL_PONTOS FROM PONTO_COLETA;
+SELECT COUNT(*) AS TOTAL_LEITURAS FROM LEITURA_SENSOR;
+SELECT COUNT(*) AS TOTAL_OCORRENCIAS FROM OCORRENCIA;
+```
+
+Depois dos POSTs, as contagens aumentam. Depois dos DELETEs, os registros de usuário, leitura e ocorrência utilizados no teste são removidos; o ponto permanece com `ATIVO = 0`. A leitura anterior já pode constar de outras medições e o sistema pode conter dados adicionais - não espere quantidades fixas em schemas compartilhados.
