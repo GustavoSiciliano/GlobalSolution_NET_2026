@@ -94,12 +94,7 @@ O modelo utiliza relacionamentos do tipo **um para muitos (1:N)**:
 - Um ponto de coleta pode receber várias leituras.
 - Um ponto de coleta pode possuir diferentes ocorrências.
 
-```mermaid
-erDiagram
-    USUARIO ||--o{ OCORRENCIA : registra
-    PONTO_COLETA ||--o{ OCORRENCIA : recebe
-    PONTO_COLETA ||--o{ LEITURA_SENSOR : possui
-```
+![Diagrama](Diagram/Diagrama.png)
 
 ### 4.3 Campos principais
 
