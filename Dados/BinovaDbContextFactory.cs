@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using Oracle.EntityFrameworkCore;
 
 namespace Binova.Api.Dados;
 
@@ -34,7 +35,12 @@ public class BinovaDbContextFactory : IDesignTimeDbContextFactory<BinovaDbContex
 
         var opcoes = new DbContextOptionsBuilder<BinovaDbContext>()
             .UseOracle(conexao, oracle =>
-                oracle.MigrationsHistoryTable("BINOVA_EF_MIGRATIONS"))
+            {
+                oracle.MigrationsHistoryTable("BINOVA_EF_MIGRATIONS");
+                oracle.UseOracleSQLCompatibility(
+                    OracleSQLCompatibility.DatabaseVersion19
+                );
+            })
             .Options;
 
         return new BinovaDbContext(opcoes);
